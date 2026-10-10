@@ -98,16 +98,19 @@ class DevotionalAudioSynthesizer {
    * Strikes the authentic Indian temple bell at the exact apex moment
    * when the sacred mantra reveals.
    */
-  public chimeBell(volumePercent: number = 32) {
+  public chimeBell(volumePercent: number = 75) {
     if (this.isMuted || this.hasEnded) return;
 
     try {
       this.init();
       if (!this.ctx) return;
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
 
       const now = this.ctx.currentTime;
       const bellGainMaster = this.ctx.createGain();
-      const masterVol = Math.min(0.35, Math.max(0.02, (volumePercent / 100) * 0.3));
+      const masterVol = Math.min(0.85, Math.max(0.2, (volumePercent / 100) * 0.7));
 
       bellGainMaster.gain.setValueAtTime(masterVol, now);
       if (!this.masterGain) {
@@ -119,12 +122,12 @@ class DevotionalAudioSynthesizer {
 
       // Sacred Temple Bell partial harmonics (tuned around 528 Hz with natural bronze ring)
       const bellPartials = [
-        { freq: 528, gain: 0.5, decay: 4.2 },   // Fundamental Sacred 528Hz
-        { freq: 838, gain: 0.3, decay: 3.4 },   // Shimmering minor 3rd partial
-        { freq: 1056, gain: 0.22, decay: 2.8 }, // 1st Octave harmonic
-        { freq: 1584, gain: 0.15, decay: 2.2 }, // 5th Overtone
-        { freq: 2112, gain: 0.09, decay: 1.6 }, // 2nd Octave
-        { freq: 2640, gain: 0.05, decay: 1.2 }, // High metallic sparkle
+        { freq: 528, gain: 0.65, decay: 4.5 },   // Fundamental Sacred 528Hz
+        { freq: 838, gain: 0.45, decay: 3.8 },   // Shimmering minor 3rd partial
+        { freq: 1056, gain: 0.35, decay: 3.0 },  // 1st Octave harmonic
+        { freq: 1584, gain: 0.25, decay: 2.4 },  // 5th Overtone
+        { freq: 2112, gain: 0.15, decay: 1.8 },  // 2nd Octave
+        { freq: 2640, gain: 0.1, decay: 1.4 },   // High metallic sparkle
       ];
 
       bellPartials.forEach((p) => {
@@ -224,8 +227,18 @@ class DevotionalAudioSynthesizer {
    */
   public unlockAudioContext() {
     this.init();
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume().catch(() => {});
+    if (this.ctx) {
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
+      try {
+        // iOS Web Audio hardware awakening tick
+        const buffer = this.ctx.createBuffer(1, 1, 22050);
+        const source = this.ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(this.ctx.destination);
+        source.start(0);
+      } catch {}
     }
   }
 
@@ -303,11 +316,12 @@ class DevotionalAudioSynthesizer {
         // Stop any prior drone oscillators
         this.stopDrone(0);
 
-        // 3 sacred harmonic drone frequencies (108Hz, 216Hz, 324Hz)
+        // Sacred harmonic drone frequencies tuned for rich resonance on mobile phone speakers
         const droneHarmonics = [
-          { freq: 108, type: 'sine' as OscillatorType, gain: 0.35, detune: -1.5 },
-          { freq: 216, type: 'triangle' as OscillatorType, gain: 0.22, detune: 1.2 },
-          { freq: 324, type: 'sine' as OscillatorType, gain: 0.12, detune: 0.8 },
+          { freq: 216, type: 'triangle' as OscillatorType, gain: 0.35, detune: -1.0 },
+          { freq: 324, type: 'sine' as OscillatorType, gain: 0.28, detune: 0.8 },
+          { freq: 432, type: 'triangle' as OscillatorType, gain: 0.22, detune: 0.5 },
+          { freq: 540, type: 'sine' as OscillatorType, gain: 0.15, detune: -0.5 },
         ];
 
         this.droneOscillators = droneHarmonics.map((h) => {

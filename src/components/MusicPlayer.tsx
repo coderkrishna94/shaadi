@@ -157,7 +157,8 @@ export const MusicPlayer: React.FC = () => {
     try {
       unlockAudioContext();
       hasPrimedRef.current = true;
-      audio.muted = true;
+      audio.muted = false;
+      audio.volume = 0.0001;
       isPlayPendingRef.current = true;
       const playPromise = audio.play();
       if (playPromise !== undefined) {
@@ -167,7 +168,6 @@ export const MusicPlayer: React.FC = () => {
             if (isIntroActiveRef.current) {
               audio.volume = 0.0001;
             } else {
-              audio.muted = false;
               audio.volume = currentVolume;
               setIsPlaying(true);
               isPlayingRef.current = true;
@@ -177,13 +177,14 @@ export const MusicPlayer: React.FC = () => {
           })
           .catch(() => {
             isPlayPendingRef.current = false;
-            audio.muted = false;
+            hasPrimedRef.current = false;
           });
       } else {
         isPlayPendingRef.current = false;
       }
     } catch {
       isPlayPendingRef.current = false;
+      hasPrimedRef.current = false;
     }
   }, [unlockAudioContext, currentVolume, saveAudioSession]);
 

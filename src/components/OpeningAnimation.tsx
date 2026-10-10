@@ -145,7 +145,7 @@ export const OpeningAnimation: React.FC<OpeningAnimationProps> = ({ onComplete }
     const ganeshAudioSrc = config.music?.ganeshAudioSrc;
 
     // AUDIO TIMELINE: T+0ms Begin hymn / devotional audio fade-in (0 -> target volume over 500ms)
-    if (!shouldReduceMotion && ganeshAudioEnabled) {
+    if (ganeshAudioEnabled) {
       devotionalAudio.timelineStartFadeIn(ganeshAudioVolume, 500, ganeshAudioSrc);
     }
 
@@ -153,7 +153,7 @@ export const OpeningAnimation: React.FC<OpeningAnimationProps> = ({ onComplete }
     ganeshEnteringTimerRef.current = setTimeout(() => {
       activateGaneshScene();
     }, 400);
-  }, [clearTimers, shouldReduceMotion, config.music]);
+  }, [clearTimers, config.music]);
 
   // PHASE 3 (Active Ganesh Invocation: Reveal + Chime + Sacred Hold)
   const activateGaneshScene = useCallback(() => {
@@ -164,13 +164,13 @@ export const OpeningAnimation: React.FC<OpeningAnimationProps> = ({ onComplete }
     const ganeshAudioEnabled = config.music?.ganeshAudioEnabled !== false;
     const ganeshAudioVolume = config.music?.ganeshAudioVolume ?? 80;
 
-    // Exactly when text resolves (~600ms into this phase, T+1000ms overall), chime the bronze bell
+    // Chime the sacred bronze bell as the sacred mantra resolves
     setTimeout(() => {
-      if (!shouldReduceMotion && activePhaseRef.current === 'GANESH_ACTIVE' && ganeshAudioEnabled) {
+      if (activePhaseRef.current === 'GANESH_ACTIVE' && ganeshAudioEnabled) {
         devotionalAudio.timelineChimeBell(Math.min(100, Math.round(ganeshAudioVolume * 1.1)));
         logTimeline('GANESH_BELL_CHIME (Authentic 528Hz bronze bell strike)');
       }
-    }, 600);
+    }, 250);
 
     // Sacred hold: 3.1s total in this phase (from T+400ms to T+3500ms overall)
     // Allows ~2.5 seconds of serene, comfortable reading hold
