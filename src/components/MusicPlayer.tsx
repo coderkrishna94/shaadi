@@ -2,6 +2,16 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWedding } from '@/context/WeddingContext';
 
+interface StoredAudioSession {
+  src: string;
+  currentTime: number;
+  wasPlaying: boolean;
+  userMuted: boolean;
+  updatedAt: number;
+}
+
+const STORAGE_KEY = 'wedding_audio_session';
+
 export const MusicPlayer: React.FC = () => {
   const { config } = useWedding();
   const music = config.music || {
@@ -23,7 +33,48 @@ export const MusicPlayer: React.FC = () => {
   const prevSrcRef = useRef(audioSrc);
   const fadeAnimRef = useRef<number | null>(null);
 
+  // Position and Session Persistence Refs
+  const pendingSeekTimeRef = useRef<number | null>(null);
+  const lastSaveTimeRef = useRef<number>(0);
+  const wasPlayingBeforeCelebrationRef = useRef(false);
+
   const currentVolume = (music.volume !== undefined ? music.volume : 75) / 100;
+
+  // Save session state to sessionStorage
+  const saveAudioSession = useCallback((override?: Partial<StoredAudioSession>) => {
+    const audio = audioRef.current;
+    if (typeof window === 'undefined') return;
+    try {
+      const curTime = audio && isFinite(audio.currentTime) ? audio.currentTime : 0;
+      const isActivelyPlaying = isPlayingRef.current && !!audio && !audio.paused;
+      const data: StoredAudioSession = {
+        src: audioSrc,
+        currentTime: override?.currentTime !== undefined ? override.currentTime : curTime,
+        wasPlaying: override?.wasPlaying !== undefined ? override.wasPlaying : isActivelyPlaying,
+        userMuted: override?.userMuted !== undefined ? override.userMuted : userMutedRef.current,
+        updatedAt: Date.now(),
+      };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch {
+      // Ignore storage errors
+    }
+  }, [audioSrc]);
+
+  // Load session state from sessionStorage
+  const loadAudioSession = useCallback((): StoredAudioSession | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.src === audioSrc && typeof parsed.currentTime === 'number' && isFinite(parsed.currentTime)) {
+        return parsed as StoredAudioSession;
+      }
+    } catch {
+      // Ignore corrupt storage
+    }
+    return null;
+  }, [audioSrc]);
 
   // Live volume synchronization from editor
   useEffect(() => {
@@ -44,6 +95,28 @@ export const MusicPlayer: React.FC = () => {
       }
     } catch {
       // Ignore context errors
+    }
+  }, []);
+
+  // Safe seek helper that respects metadata readiness and duration boundaries
+  const applySeek = useCallback((targetTime: number) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (!isFinite(targetTime) || targetTime < 0) return;
+
+    if (audio.readyState >= 1) {
+      try {
+        const maxTime = isFinite(audio.duration) && audio.duration > 0 ? Math.max(0, audio.duration - 0.2) : targetTime;
+        const safeTime = Math.min(targetTime, maxTime);
+        if (Math.abs(audio.currentTime - safeTime) > 0.2) {
+          audio.currentTime = safeTime;
+        }
+        pendingSeekTimeRef.current = null;
+      } catch {
+        pendingSeekTimeRef.current = targetTime;
+      }
+    } else {
+      pendingSeekTimeRef.current = targetTime;
     }
   }, []);
 
@@ -77,7 +150,7 @@ export const MusicPlayer: React.FC = () => {
     fadeAnimRef.current = requestAnimationFrame(ramp);
   }, []);
 
-  // Silently prime audio permissions during early user interaction (e.g. tap during intro)
+  // Silently prime audio permissions during early user interaction
   const primeAudio = useCallback(() => {
     const audio = audioRef.current;
     if (!audio || hasPrimedRef.current || isPlayPendingRef.current) return;
@@ -92,7 +165,6 @@ export const MusicPlayer: React.FC = () => {
           .then(() => {
             isPlayPendingRef.current = false;
             if (isIntroActiveRef.current) {
-              // Keep playing silently at near-zero volume to preserve the browser playback token
               audio.volume = 0.0001;
             } else {
               audio.muted = false;
@@ -100,6 +172,7 @@ export const MusicPlayer: React.FC = () => {
               setIsPlaying(true);
               isPlayingRef.current = true;
               setNeedsGesture(false);
+              saveAudioSession({ wasPlaying: true });
             }
           })
           .catch(() => {
@@ -112,7 +185,7 @@ export const MusicPlayer: React.FC = () => {
     } catch {
       isPlayPendingRef.current = false;
     }
-  }, [unlockAudioContext, currentVolume]);
+  }, [unlockAudioContext, currentVolume, saveAudioSession]);
 
   // Listen for early gestures dispatched from the opening animation
   useEffect(() => {
@@ -123,7 +196,7 @@ export const MusicPlayer: React.FC = () => {
     return () => window.removeEventListener('wedding:user-gesture', handleEarlyGesture);
   }, [primeAudio]);
 
-  // Attempt audio playback with smooth volume ramp and pending promise guard
+  // Attempt audio playback with smooth volume ramp, seek validation, and pending promise guard
   const attemptPlay = useCallback(() => {
     const audio = audioRef.current;
     if (!audio || userMutedRef.current || !music.enabled || isIntroActiveRef.current) return;
@@ -131,12 +204,18 @@ export const MusicPlayer: React.FC = () => {
 
     unlockAudioContext();
 
-    // If audio is already playing (e.g. was primed silently during intro), smoothly unmute & ramp up
+    // If there is a pending seek target and metadata is ready, apply seek before playing
+    if (pendingSeekTimeRef.current !== null && audio.readyState >= 1) {
+      applySeek(pendingSeekTimeRef.current);
+    }
+
+    // If audio is already playing, smoothly unmute & ramp up
     if (!audio.paused) {
       setIsPlaying(true);
       isPlayingRef.current = true;
       setNeedsGesture(false);
       startVolumeFadeIn(currentVolume, 800);
+      saveAudioSession({ wasPlaying: true });
       return;
     }
 
@@ -153,11 +232,10 @@ export const MusicPlayer: React.FC = () => {
           isPlayingRef.current = true;
           setNeedsGesture(false);
           startVolumeFadeIn(currentVolume, 800);
+          saveAudioSession({ wasPlaying: true, currentTime: audio.currentTime });
         })
         .catch((err) => {
           isPlayPendingRef.current = false;
-          // Autoplay policy prevented immediate unprompted sound;
-          // Remains queued for visitor gesture, and shows interactive prompt
           isPlayingRef.current = false;
           setIsPlaying(false);
           setNeedsGesture(true);
@@ -166,7 +244,37 @@ export const MusicPlayer: React.FC = () => {
     } else {
       isPlayPendingRef.current = false;
     }
-  }, [music.enabled, currentVolume, unlockAudioContext, startVolumeFadeIn]);
+  }, [music.enabled, currentVolume, unlockAudioContext, startVolumeFadeIn, applySeek, saveAudioSession]);
+
+  // Initialize and restore saved playback state on mount and audio source changes
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const saved = loadAudioSession();
+    if (saved) {
+      userMutedRef.current = saved.userMuted;
+      if (saved.currentTime > 0) {
+        applySeek(saved.currentTime);
+      }
+      // If audio was playing before reload and user hasn't muted it
+      if (saved.wasPlaying && !saved.userMuted && music.enabled) {
+        // If intro has already concluded, attempt to resume playback immediately
+        const isIntroPlayed = typeof window !== 'undefined' && sessionStorage.getItem('introPlayed') === 'true';
+        if (isIntroPlayed || !isIntroActiveRef.current) {
+          isIntroActiveRef.current = false;
+          attemptPlay();
+        }
+      }
+    } else {
+      // First visit or fresh track: if intro already finished, attempt play
+      const isIntroPlayed = typeof window !== 'undefined' && sessionStorage.getItem('introPlayed') === 'true';
+      if ((isIntroPlayed || !isIntroActiveRef.current) && music.enabled && music.autoplay !== false) {
+        isIntroActiveRef.current = false;
+        attemptPlay();
+      }
+    }
+  }, [audioSrc, music.enabled, music.autoplay, loadAudioSession, applySeek, attemptPlay]);
 
   // Listen for intro lifecycle events:
   // Hymns play exclusively during intro/Ganesh invocation.
@@ -204,15 +312,6 @@ export const MusicPlayer: React.FC = () => {
   useEffect(() => {
     if (!music.enabled || music.autoplay === false) return;
 
-    // Check if intro has already concluded
-    const isAlreadyPlayed = typeof window !== 'undefined' && sessionStorage.getItem('introPlayed') === 'true';
-    if (isAlreadyPlayed) {
-      isIntroActiveRef.current = false;
-      attemptPlay();
-    } else if (!isIntroActiveRef.current) {
-      attemptPlay();
-    }
-
     // Gesture listeners that trigger audio authorization & playback
     const handleVisitorGesture = () => {
       if (isIntroActiveRef.current) {
@@ -224,7 +323,6 @@ export const MusicPlayer: React.FC = () => {
       }
     };
 
-    // Authentic user activation events (no scroll/wheel spam)
     const gestureEvents = ['pointerdown', 'touchstart', 'click', 'keydown'];
 
     gestureEvents.forEach((evt) => {
@@ -236,7 +334,7 @@ export const MusicPlayer: React.FC = () => {
         window.removeEventListener(evt, handleVisitorGesture);
       });
     };
-  }, [audioSrc, music.enabled, music.autoplay, attemptPlay, primeAudio]);
+  }, [music.enabled, music.autoplay, attemptPlay, primeAudio]);
 
   // Handle source changes from editor
   useEffect(() => {
@@ -244,12 +342,38 @@ export const MusicPlayer: React.FC = () => {
       prevSrcRef.current = audioSrc;
       const audio = audioRef.current;
       if (!audio) return;
+      pendingSeekTimeRef.current = null;
+      try {
+        sessionStorage.removeItem(STORAGE_KEY);
+      } catch {}
       audio.load();
       if (music.enabled && !userMutedRef.current && music.autoplay !== false && !isIntroActiveRef.current) {
         attemptPlay();
       }
     }
   }, [audioSrc, music.enabled, music.autoplay, attemptPlay]);
+
+  // Save state immediately on window unload/pagehide
+  useEffect(() => {
+    const handleUnload = () => {
+      const audio = audioRef.current;
+      if (audio && isFinite(audio.currentTime)) {
+        saveAudioSession({
+          currentTime: audio.currentTime,
+          wasPlaying: isPlayingRef.current && !audio.paused,
+          userMuted: userMutedRef.current,
+        });
+      }
+    };
+
+    window.addEventListener('pagehide', handleUnload);
+    window.addEventListener('beforeunload', handleUnload);
+
+    return () => {
+      window.removeEventListener('pagehide', handleUnload);
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, [saveAudioSession]);
 
   // Duck background music volume during scratching interaction
   useEffect(() => {
@@ -281,8 +405,6 @@ export const MusicPlayer: React.FC = () => {
   }, [currentVolume]);
 
   // Pause background music during celebration modal playback, resume after
-  const wasPlayingBeforeCelebrationRef = useRef(false);
-
   useEffect(() => {
     const handleCelebrationStart = () => {
       const audio = audioRef.current;
@@ -306,6 +428,7 @@ export const MusicPlayer: React.FC = () => {
             isPlayPendingRef.current = false;
             setIsPlaying(true);
             isPlayingRef.current = true;
+            saveAudioSession({ wasPlaying: true });
           })
           .catch(() => {
             isPlayPendingRef.current = false;
@@ -321,7 +444,7 @@ export const MusicPlayer: React.FC = () => {
       window.removeEventListener('wedding:celebration-start', handleCelebrationStart);
       window.removeEventListener('wedding:celebration-end', handleCelebrationEnd);
     };
-  }, [music.enabled, currentVolume]);
+  }, [music.enabled, currentVolume, saveAudioSession]);
 
   if (!music.enabled) return null;
 
@@ -330,14 +453,15 @@ export const MusicPlayer: React.FC = () => {
     if (!audio) return;
 
     if (isPlaying) {
-      // User requested mute
+      // User requested mute / pause
       userMutedRef.current = true;
       audio.pause();
       setIsPlaying(false);
       isPlayingRef.current = false;
       setNeedsGesture(false);
+      saveAudioSession({ wasPlaying: false, userMuted: true, currentTime: audio.currentTime });
     } else {
-      // User requested unmute / play
+      // User requested unmute / resume
       userMutedRef.current = false;
       isIntroActiveRef.current = false;
       setNeedsGesture(false);
@@ -345,11 +469,18 @@ export const MusicPlayer: React.FC = () => {
       audio.muted = false;
       audio.volume = currentVolume;
       isPlayPendingRef.current = true;
+
+      // Ensure seek target is applied if any
+      if (pendingSeekTimeRef.current !== null && audio.readyState >= 1) {
+        applySeek(pendingSeekTimeRef.current);
+      }
+
       audio.play()
         .then(() => {
           isPlayPendingRef.current = false;
           setIsPlaying(true);
           isPlayingRef.current = true;
+          saveAudioSession({ wasPlaying: true, userMuted: false, currentTime: audio.currentTime });
         })
         .catch(() => {
           isPlayPendingRef.current = false;
@@ -372,6 +503,21 @@ export const MusicPlayer: React.FC = () => {
         loop
         playsInline
         preload="auto"
+        onLoadedMetadata={() => {
+          if (pendingSeekTimeRef.current !== null && audioRef.current) {
+            applySeek(pendingSeekTimeRef.current);
+          }
+        }}
+        onTimeUpdate={() => {
+          const audio = audioRef.current;
+          if (audio && isFinite(audio.currentTime) && audio.currentTime > 0) {
+            const now = Date.now();
+            if (now - lastSaveTimeRef.current > 1000) {
+              lastSaveTimeRef.current = now;
+              saveAudioSession({ currentTime: audio.currentTime });
+            }
+          }
+        }}
         onError={(e) => {
           console.warn('[MusicPlayer] Audio stream notification:', e);
           isPlayingRef.current = false;
@@ -382,14 +528,23 @@ export const MusicPlayer: React.FC = () => {
           setIsPlaying(true);
           isPlayingRef.current = true;
           setNeedsGesture(false);
+          const audio = audioRef.current;
+          if (audio && isFinite(audio.currentTime)) {
+            saveAudioSession({ wasPlaying: true, currentTime: audio.currentTime });
+          }
         }}
         onPause={() => {
           setIsPlaying(false);
           isPlayingRef.current = false;
+          const audio = audioRef.current;
+          if (audio && !wasPlayingBeforeCelebrationRef.current && isFinite(audio.currentTime)) {
+            saveAudioSession({ wasPlaying: false, currentTime: audio.currentTime });
+          }
         }}
         onEnded={() => {
           setIsPlaying(false);
           isPlayingRef.current = false;
+          saveAudioSession({ wasPlaying: false, currentTime: 0 });
         }}
       />
 

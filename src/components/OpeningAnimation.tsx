@@ -243,11 +243,11 @@ export const OpeningAnimation: React.FC<OpeningAnimationProps> = ({ onComplete }
   const handleIntroAnimationComplete = useCallback(() => {
     logTimeline('INTRO_COMPLETE (Rishabh & Simran animation has reached its ACTUAL completion)');
 
-    // Allow comfortable time for the visitor to tap 'Enter Celebration' (6s),
-    // or advance automatically
+    // Hold the completed romantic slide for a deliberate 900ms reading beat,
+    // then advance to the Ganesh transition automatically
     introHoldTimerRef.current = setTimeout(() => {
       startTransitionToGanesh();
-    }, 6000);
+    }, 900);
   }, [startTransitionToGanesh]);
 
   // Immediate Skip handler
@@ -432,33 +432,15 @@ export const OpeningAnimation: React.FC<OpeningAnimationProps> = ({ onComplete }
               {config.wedding.city || 'Kanpur Nagar'}
             </motion.p>
 
-            {/* Interactive Royal Entrance Button */}
+            {/* Subtle tap guidance */}
             <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.75 }}
               transition={{ delay: 1.4, duration: 0.8 }}
-              className="mt-8 flex flex-col items-center gap-2 pointer-events-auto z-20"
+              className="absolute bottom-8 sm:bottom-10 left-1/2 transform -translate-x-1/2 flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-[var(--color-primary)] font-body"
             >
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleScreenTap();
-                }}
-                className="px-8 py-3.5 rounded-full bg-[var(--color-primary)] text-[var(--color-secondary)] border border-[var(--color-secondary)]/60 shadow-2xl uppercase tracking-[0.22em] text-xs sm:text-sm font-body font-semibold flex items-center gap-3.5 backdrop-blur-md cursor-pointer hover:brightness-110 active:scale-95 transition-all"
-                style={{
-                  boxShadow: '0 10px 30px -5px rgba(100, 31, 45, 0.45), 0 0 25px rgba(184, 155, 94, 0.35)',
-                }}
-                aria-label="Enter celebration with music"
-              >
-                <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-secondary)] animate-ping" />
-                <span>Enter Celebration 🪷</span>
-              </motion.button>
-              <span className="text-[11px] uppercase tracking-[0.25em] text-[var(--color-primary)]/80 font-body font-medium">
-                Tap to open with music
-              </span>
+              <span className="inline-block w-2 h-2 rounded-full bg-[var(--color-secondary)] animate-ping" />
+              <span>Tap anywhere to continue</span>
             </motion.div>
           </motion.div>
 
