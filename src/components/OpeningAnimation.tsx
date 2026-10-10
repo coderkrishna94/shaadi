@@ -62,8 +62,8 @@ export const OpeningAnimation: React.FC<OpeningAnimationProps> = ({ onComplete }
 
   // State Machine Phase
   const [phase, setPhase] = useState<CinematicPhase>('INTRO_PLAYING');
-  const [isOverlayVisible, setIsOverlayVisible] = useState(false);
-  const [hasPlayed, setHasPlayed] = useState(true);
+  const [isOverlayVisible, setIsOverlayVisible] = useState(true);
+  const [hasPlayed, setHasPlayed] = useState(false);
 
   // Authoritative timeline timer references
   const introHoldTimerRef = useRef<any>(null);
@@ -206,7 +206,7 @@ export const OpeningAnimation: React.FC<OpeningAnimationProps> = ({ onComplete }
 
     setPhase('MAIN_EXPERIENCE');
     setIsOverlayVisible(false);
-    sessionStorage.setItem('introPlayed', 'true');
+    setHasPlayed(true);
     document.body.style.overflow = '';
 
     logTimeline('MAIN_SCENE_START (Hero section visible, starting background music with crossfade)');
@@ -214,30 +214,21 @@ export const OpeningAnimation: React.FC<OpeningAnimationProps> = ({ onComplete }
     onComplete();
   }, [clearTimers, onComplete]);
 
-  // Initial Sequence Boot
+  // Initial Sequence Boot: Entrance panel always starts cleanly for every visitor
   useEffect(() => {
-    const played = sessionStorage.getItem('introPlayed');
-    if (played || shouldReduceMotion) {
-      setHasPlayed(true);
-      setPhase('MAIN_EXPERIENCE');
-      document.body.style.overflow = '';
-      window.dispatchEvent(new CustomEvent('wedding:play-music'));
-      onComplete();
-    } else {
-      setHasPlayed(false);
-      setIsOverlayVisible(true);
-      setPhase('INTRO_PLAYING');
-      devotionalAudio.resetHymnState();
-      window.dispatchEvent(new CustomEvent('wedding:intro-start'));
-      logTimeline('INTRO_START (Rishabh & Simran romantic introduction)');
+    setHasPlayed(false);
+    setIsOverlayVisible(true);
+    setPhase('INTRO_PLAYING');
+    devotionalAudio.resetHymnState();
+    window.dispatchEvent(new CustomEvent('wedding:intro-start'));
+    logTimeline('INTRO_START (Rishabh & Simran romantic introduction)');
 
-      return () => {
-        clearTimers();
-        devotionalAudio.timelineStopImmediate();
-        document.body.style.overflow = '';
-      };
-    }
-  }, [shouldReduceMotion, onComplete, clearTimers]);
+    return () => {
+      clearTimers();
+      devotionalAudio.timelineStopImmediate();
+      document.body.style.overflow = '';
+    };
+  }, [clearTimers]);
 
   // Event handler for when the Rishabh & Simran intro animation finishes naturally
   const handleIntroAnimationComplete = useCallback(() => {

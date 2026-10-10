@@ -244,6 +244,7 @@ class DevotionalAudioSynthesizer {
         }
         this.audioElement.src = src;
         this.audioElement.volume = 0.001;
+        this.isPlaying = true;
         const playPromise = this.audioElement.play();
         if (playPromise !== undefined) {
           playPromise

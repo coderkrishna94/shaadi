@@ -28,7 +28,7 @@ export const MusicPlayer: React.FC = () => {
   const userMutedRef = useRef(false);
   const isPlayingRef = useRef(false);
   const isPlayPendingRef = useRef(false);
-  const isIntroActiveRef = useRef(typeof window !== 'undefined' ? !sessionStorage.getItem('introPlayed') : false);
+  const isIntroActiveRef = useRef(true);
   const hasPrimedRef = useRef(false);
   const prevSrcRef = useRef(audioSrc);
   const fadeAnimRef = useRef<number | null>(null);
@@ -257,24 +257,8 @@ export const MusicPlayer: React.FC = () => {
       if (saved.currentTime > 0) {
         applySeek(saved.currentTime);
       }
-      // If audio was playing before reload and user hasn't muted it
-      if (saved.wasPlaying && !saved.userMuted && music.enabled) {
-        // If intro has already concluded, attempt to resume playback immediately
-        const isIntroPlayed = typeof window !== 'undefined' && sessionStorage.getItem('introPlayed') === 'true';
-        if (isIntroPlayed || !isIntroActiveRef.current) {
-          isIntroActiveRef.current = false;
-          attemptPlay();
-        }
-      }
-    } else {
-      // First visit or fresh track: if intro already finished, attempt play
-      const isIntroPlayed = typeof window !== 'undefined' && sessionStorage.getItem('introPlayed') === 'true';
-      if ((isIntroPlayed || !isIntroActiveRef.current) && music.enabled && music.autoplay !== false) {
-        isIntroActiveRef.current = false;
-        attemptPlay();
-      }
     }
-  }, [audioSrc, music.enabled, music.autoplay, loadAudioSession, applySeek, attemptPlay]);
+  }, [audioSrc, loadAudioSession, applySeek]);
 
   // Listen for intro lifecycle events:
   // Hymns play exclusively during intro/Ganesh invocation.
