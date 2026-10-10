@@ -153,7 +153,7 @@ export const MusicPlayer: React.FC = () => {
   // Silently prime audio permissions during early user interaction
   const primeAudio = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio || hasPrimedRef.current || isPlayPendingRef.current) return;
+    if (!audio || (!audio.paused && hasPrimedRef.current) || isPlayPendingRef.current) return;
     try {
       unlockAudioContext();
       hasPrimedRef.current = true;
@@ -276,7 +276,14 @@ export const MusicPlayer: React.FC = () => {
 
     const handleIntroEnd = () => {
       isIntroActiveRef.current = false;
-      if (!userMutedRef.current && music.enabled) {
+      const audio = audioRef.current;
+      if (audio && !userMutedRef.current && music.enabled) {
+        // If track was playing at silent primed volume during intro, seek to start so the full song plays from the beginning
+        if (audio.currentTime > 0 && audio.currentTime < 8) {
+          try {
+            audio.currentTime = 0;
+          } catch {}
+        }
         attemptPlay();
       }
     };

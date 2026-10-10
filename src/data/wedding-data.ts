@@ -230,7 +230,7 @@ export const weddingData: WeddingConfig = {
     "autoplay": true,
     "volume": 75,
     "ganeshAudioEnabled": true,
-    "ganeshAudioSrc": "",
+    "ganeshAudioSrc": "/temple-bell.wav",
     "ganeshAudioTitle": "Vedic Temple Bell & Sacred Meditative Chant (528Hz)",
     "ganeshAudioVolume": 80,
     "ganeshAudioType": "synthetic-bell"

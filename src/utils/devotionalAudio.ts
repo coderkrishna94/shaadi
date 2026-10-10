@@ -249,47 +249,49 @@ class DevotionalAudioSynthesizer {
   public timelineStartFadeIn(volumePercent: number = 80, durationMs: number = 500, src?: string) {
     if (this.isMuted || this.hasEnded) return;
 
-    // 1. If an audio file track is supplied, play it with smooth volume ramp
-    if (src && src.trim() !== '' && src !== 'synthetic-bell') {
-      try {
-        if (!this.audioElement) {
-          this.audioElement = new Audio();
-        }
-        this.audioElement.src = src;
-        this.audioElement.volume = 0.001;
-        this.isPlaying = true;
-        const playPromise = this.audioElement.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              if (this.fadeAnimId) cancelAnimationFrame(this.fadeAnimId);
-              const targetVol = Math.min(1.0, Math.max(0.01, volumePercent / 100));
-              const startTime = performance.now();
-              const ramp = (now: number) => {
-                const elapsed = now - startTime;
-                const progress = Math.min(1, elapsed / durationMs);
-                if (this.audioElement && this.isPlaying) {
-                  this.audioElement.volume = Math.max(0.001, progress * targetVol);
-                  if (progress < 1) {
-                    this.fadeAnimId = requestAnimationFrame(ramp);
-                  } else {
-                    this.fadeAnimId = null;
-                  }
+    // 1. Play audio element (temple-bell.wav or custom audio file)
+    const audioTrack = (src && src.trim() !== '' && src !== 'synthetic-bell') ? src : '/temple-bell.wav';
+    try {
+      if (!this.audioElement) {
+        this.audioElement = new Audio();
+      }
+      this.audioElement.src = audioTrack;
+      this.audioElement.volume = 0.001;
+      this.isPlaying = true;
+      const playPromise = this.audioElement.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            if (this.fadeAnimId) cancelAnimationFrame(this.fadeAnimId);
+            const targetVol = Math.min(1.0, Math.max(0.01, volumePercent / 100));
+            const startTime = performance.now();
+            const ramp = (now: number) => {
+              const elapsed = now - startTime;
+              const progress = Math.min(1, elapsed / durationMs);
+              if (this.audioElement && this.isPlaying) {
+                this.audioElement.volume = Math.max(0.001, progress * targetVol);
+                if (progress < 1) {
+                  this.fadeAnimId = requestAnimationFrame(ramp);
+                } else {
+                  this.fadeAnimId = null;
                 }
-              };
-              this.fadeAnimId = requestAnimationFrame(ramp);
-            })
-            .catch(() => {});
-        }
-      } catch {}
-    }
+              }
+            };
+            this.fadeAnimId = requestAnimationFrame(ramp);
+          })
+          .catch(() => {});
+      }
+    } catch {}
 
     // 2. Also start native sacred drone harmonics
     try {
       this.init();
       if (this.ctx) {
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
         const now = this.ctx.currentTime;
-        const targetGain = Math.min(0.28, Math.max(0.01, (volumePercent / 100) * 0.25));
+        const targetGain = Math.min(0.35, Math.max(0.01, (volumePercent / 100) * 0.3));
         const fadeInSec = durationMs / 1000;
 
         // Master output gain
