@@ -1,0 +1,354 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   CSS Custom Properties — Set dynamically by ThemeContext
+   ============================================================ */
+:root {
+  --color-primary: #641F2D;
+  --color-secondary: #B89B5E;
+  --color-accent: #23483E;
+  --color-bg: #F7F1E7;
+  --color-text: #252322;
+  --font-heading: 'Playfair Display', serif;
+  --font-body: 'Inter', sans-serif;
+  --font-script: 'Cormorant Garamond', serif;
+  --border-radius: 4px;
+}
+
+/* ============================================================
+   Base Styles
+   ============================================================ */
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+::selection {
+  background-color: var(--color-secondary);
+  color: var(--color-bg);
+}
+
+/* ============================================================
+   Typography
+   ============================================================ */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+
+.font-script {
+  font-family: var(--font-script);
+}
+
+/* ============================================================
+   Elegant Scrollbar
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-secondary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* ============================================================
+   Indian Motif Patterns (used as backgrounds)
+   ============================================================ */
+.motif-border-top {
+  position: relative;
+}
+
+.motif-border-top::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-secondary),
+    transparent
+  );
+}
+
+.motif-border-bottom::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-secondary),
+    transparent
+  );
+}
+
+/* ============================================================
+   Section Styling & Responsive Sizing
+   ============================================================ */
+.section-padding {
+  @apply py-14 px-4 sm:py-20 sm:px-6 md:py-28 md:px-12 lg:py-32 lg:px-20;
+}
+
+.section-title {
+  font-size: clamp(1.75rem, 5vw, 3rem);
+  font-family: var(--font-heading);
+  text-align: center;
+  margin-bottom: 0.75rem;
+  color: var(--color-primary);
+  line-height: 1.25;
+}
+
+.section-subtitle {
+  font-size: clamp(1.1rem, 3vw, 1.35rem);
+  text-align: center;
+  margin-bottom: 2.5rem;
+  font-family: var(--font-script);
+  font-style: italic;
+  color: var(--color-secondary);
+}
+
+/* Touch & Mobile Interaction Utilities */
+button, a, input, select, textarea {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+
+.pt-safe {
+  padding-top: max(1rem, env(safe-area-inset-top, 0px));
+}
+
+/* ============================================================
+   Gold Ornamental Divider
+   ============================================================ */
+.ornamental-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.ornamental-divider::before,
+.ornamental-divider::after {
+  content: '';
+  flex: 0 0 60px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-secondary),
+    transparent
+  );
+}
+
+/* ============================================================
+   Button Styles
+   ============================================================ */
+.btn-primary {
+  @apply inline-flex items-center justify-center px-8 py-3 text-sm tracking-[0.2em] uppercase transition-all duration-500;
+  background: var(--color-primary);
+  color: var(--color-bg);
+  border-radius: var(--border-radius);
+  font-family: var(--font-body);
+  font-weight: 500;
+  letter-spacing: 0.15em;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.btn-outline {
+  @apply inline-flex items-center justify-center px-8 py-3 text-sm tracking-[0.2em] uppercase transition-all duration-500 border;
+  border-color: var(--color-secondary);
+  color: var(--color-secondary);
+  border-radius: var(--border-radius);
+  font-family: var(--font-body);
+  font-weight: 500;
+  background: transparent;
+}
+
+.btn-outline:hover {
+  background: var(--color-secondary);
+  color: var(--color-bg);
+  transform: translateY(-2px);
+}
+
+/* ============================================================
+   Editor Styles
+   ============================================================ */
+.editor-input {
+  @apply w-full px-3 py-2 text-sm border rounded-md transition-colors duration-200;
+  border-color: #d1d5db;
+  font-family: var(--font-body);
+}
+
+.editor-input:focus {
+  @apply outline-none ring-2;
+  ring-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.editor-label {
+  @apply block text-xs font-medium uppercase tracking-wider mb-1;
+  color: #6b7280;
+}
+
+/* ============================================================
+   Reduced Motion
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ============================================================
+   Gallery
+   ============================================================ */
+.gallery-card {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+}
+
+.gallery-card:hover {
+  transform: translateY(-4px);
+}
+
+/* ============================================================
+   Lightbox
+   ============================================================ */
+.lightbox-overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center;
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(10px);
+}
+
+/* ============================================================
+   Ken Burns (Hero Background)
+   ============================================================ */
+@keyframes kenBurns {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.05); }
+}
+
+/* ============================================================
+   Premium Gold Text Shadow
+   ============================================================ */
+.gold-text-glow {
+  text-shadow: 0 0 20px rgba(184, 155, 94, 0.25), 0 0 40px rgba(184, 155, 94, 0.10);
+}
+
+/* ============================================================
+   Focus-visible (keyboard accessibility)
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+}
+
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ============================================================
+   Section Gradient Divider
+   ============================================================ */
+.section-gradient-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 5%,
+    var(--color-secondary) 50%,
+    transparent 95%
+  );
+  opacity: 0.2;
+  margin: 0 auto;
+  max-width: 80%;
+}
+
+/* ============================================================
+   Devotional & Sacred Typography / Aura Styling
+   ============================================================ */
+.font-devanagari {
+  font-family: 'Noto Serif Devanagari', 'Rozha One', serif;
+  font-feature-settings: 'cv01', 'kern';
+  text-rendering: optimizeLegibility;
+}
+
+@keyframes devotionalAuraPulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(0.96);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.05);
+    opacity: 0.55;
+  }
+}
+
+.devotional-aura-pulse {
+  animation: devotionalAuraPulse 4s ease-in-out infinite alternate;
+}
+
+@keyframes gentleDrift {
+  0% {
+    transform: translateY(0) scale(0.9);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.65;
+  }
+  80% {
+    opacity: 0.65;
+  }
+  100% {
+    transform: translateY(-80px) scale(1.1);
+    opacity: 0;
+  }
+}
+
+.devotional-particle {
+  animation: gentleDrift linear infinite;
+}
+
