@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWedding } from '@/context/WeddingContext';
+import { resolveAssetUrl } from '@/utils/mediaUtils';
 
 interface StoredAudioSession {
   src: string;
@@ -21,7 +22,7 @@ export const MusicPlayer: React.FC = () => {
     autoplay: true,
   };
 
-  const audioSrc = music.src || '/wedding-melody.wav';
+  const audioSrc = resolveAssetUrl(music.src || '/wedding-melody.wav');
   const [isPlaying, setIsPlaying] = useState(false);
   const [needsGesture, setNeedsGesture] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);

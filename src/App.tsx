@@ -31,9 +31,12 @@ function AppRoutes() {
 }
 
 export default function App() {
+  const rawBase = ((import.meta as any).env?.BASE_URL || '/');
+  const basename = rawBase.length > 1 && rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
+
   return (
     <WeddingProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={basename}>
         <AppRoutes />
       </BrowserRouter>
     </WeddingProvider>

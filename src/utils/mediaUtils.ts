@@ -1,8 +1,29 @@
 /**
  * Utility functions for handling drag-and-drop file uploads,
  * image optimization (resizing/compressing via Canvas),
- * and audio file processing.
+ * audio file processing, and base-path-aware asset resolution.
  */
+
+/**
+ * Resolves an asset path to be base-path aware (e.g. prepends /shaadi/ on GitHub Pages,
+ * while leaving data:, blob:, or full http:// URLs untouched).
+ */
+export function resolveAssetUrl(url: string | undefined | null): string {
+  if (!url) return '';
+  if (
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('data:') ||
+    url.startsWith('blob:')
+  ) {
+    return url;
+  }
+  const base = ((import.meta as any).env?.BASE_URL || '/');
+  const cleanBase = base.endsWith('/') ? base : `${base}/`;
+  const cleanPath = url.startsWith('/') ? url.slice(1) : url;
+  return `${cleanBase}${cleanPath}`;
+}
+
 
 // Simple IndexedDB wrapper for large media files (music, high-res photos)
 const DB_NAME = 'shaadi_media_db';

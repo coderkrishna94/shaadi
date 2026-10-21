@@ -4,6 +4,7 @@ import { useWedding } from '@/context/WeddingContext';
 import { useReducedMotion } from '@/hooks/useMediaQuery';
 import { OrnamentalDivider } from '@/components/IndianMotifs';
 import { scratchAudio } from '@/utils/scratchAudio';
+import { resolveAssetUrl } from '@/utils/mediaUtils';
 
 // ============================================================
 // SCRATCH CARD CONFIGURATION DEFAULTS
@@ -122,7 +123,8 @@ function CelebrationModal({
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
 
-  const celebrationAudioSrc = cfg.celebrationMusicSrc || '/uploads/Y2Mate.is_-_Shubhaarambh_Full_Video_-_Kai_Po_Che___Sushant_Singh_Rajput___Rajkummar_Rao___Amit_Sadh___Amit_T.mp3';
+  const rawCelebrationSrc = cfg.celebrationMusicSrc || '/uploads/Y2Mate.is_-_Shubhaarambh_Full_Video_-_Kai_Po_Che___Sushant_Singh_Rajput___Rajkummar_Rao___Amit_Sadh___Amit_T.mp3';
+  const celebrationAudioSrc = resolveAssetUrl(rawCelebrationSrc);
   const musicTitle = cfg.celebrationMusicTitle || 'Celebration Music';
   const isMusicEnabled = cfg.celebrationMusicEnabled !== false && !!celebrationAudioSrc;
 

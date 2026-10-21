@@ -5,6 +5,8 @@
 // Completely native: zero network lag, zero external dependencies.
 // ============================================================
 
+import { resolveAssetUrl } from './mediaUtils';
+
 class DevotionalAudioSynthesizer {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
@@ -250,7 +252,8 @@ class DevotionalAudioSynthesizer {
     if (this.isMuted || this.hasEnded) return;
 
     // 1. Play audio element (temple-bell.wav or custom audio file)
-    const audioTrack = (src && src.trim() !== '' && src !== 'synthetic-bell') ? src : '/temple-bell.wav';
+    const rawTrack = (src && src.trim() !== '' && src !== 'synthetic-bell') ? src : '/temple-bell.wav';
+    const audioTrack = resolveAssetUrl(rawTrack);
     try {
       if (!this.audioElement) {
         this.audioElement = new Audio();
@@ -438,7 +441,7 @@ class DevotionalAudioSynthesizer {
 
     if (src && src.trim() !== '' && src !== 'synthetic-bell') {
       try {
-        this.previewAudio = new Audio(src);
+        this.previewAudio = new Audio(resolveAssetUrl(src));
         this.previewAudio.volume = Math.min(1.0, Math.max(0.01, volumePercent / 100));
         this.previewAudio.onended = () => {
           this.stopPreview();

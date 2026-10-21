@@ -97,6 +97,7 @@ function editorSavePlugin() {
 }
 
 export default defineConfig({
+  base: process.env.NETLIFY ? '/' : (process.env.BASE_PATH || '/shaadi/'),
   plugins: [react(), editorSavePlugin()],
   resolve: {
     alias: {
